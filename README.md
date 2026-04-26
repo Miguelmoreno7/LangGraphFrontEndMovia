@@ -75,6 +75,21 @@ docker compose up --build
 - Dashboard: `http://localhost:8080`
 - Control API: `http://localhost:8000`
 
+## Dokploy Deployment (No Port Collisions)
+
+Use the Dokploy compose file:
+
+- `dokploy.compose.yml`
+- Optional env template: `.env.dokploy.example`
+
+This file does not publish host ports for Redis/Postgres/API, so it avoids conflicts like:
+
+- `Bind for 0.0.0.0:6379 failed: port is already allocated`
+
+See Dokploy instructions at:
+
+- `infra/dokploy/README.md`
+
 ## Seed Data
 
 Migrations create one sample enabled agent:
@@ -113,4 +128,3 @@ Worker algorithm:
 - API role gate is header-based for bootstrap (`X-Role`: `viewer|operator|admin`).
 - `run_events` is the audit stream for queue/execution/finalization events.
 - Frontend polls runs/events every 5 seconds.
-
