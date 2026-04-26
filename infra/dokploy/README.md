@@ -27,7 +27,7 @@ That name comes from an older compose file that had fixed `container_name` value
 
 1. Create a new Docker Compose app in Dokploy.
 2. Set compose path to `docker-compose.yml`.
-3. Add environment variables from `.env.dokploy.example` (at minimum `DATABASE_URL`).
+3. Add environment variables from `.env.dokploy.example`.
 4. Expose only `frontend` publicly (port `80` in container).
 5. Keep `redis`, `control-api`, and `worker` internal unless you explicitly need external access.
 
@@ -35,10 +35,11 @@ That name comes from an older compose file that had fixed `container_name` value
 
 Required:
 
-- `DATABASE_URL` (Supabase or managed Postgres recommended)
+- None for bootstrapping (internal Postgres/Redis are included in compose)
 
 Recommended:
 
+- `DATABASE_URL` (set to Supabase or managed Postgres in production)
 - `REDIS_URL` (leave unset to use internal Redis service: `redis://redis:6379/0`)
 - `QUEUE_NAME` (default: `runs:queue`)
 - `LOG_LEVEL` (default: `INFO`)
