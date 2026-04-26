@@ -1,27 +1,10 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: langgraph-platform-postgres
-    environment:
-      POSTGRES_DB: langgraph_platform
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./infra/migrations:/docker-entrypoint-initdb.d:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d langgraph_platform"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
   redis:
     image: redis:7-alpine
-    container_name: langgraph-platform-redis
-    ports:
-      - "6379:6379"
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    expose:
+      - "6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -32,41 +15,37 @@ services:
     build:
       context: .
       dockerfile: infra/docker/control_api.Dockerfile
-    container_name: langgraph-platform-control-api
     env_file:
       - .env
     environment:
       SERVICE_NAME: control-api
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/langgraph_platform
-      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      QUEUE_NAME: ${QUEUE_NAME:-runs:queue}
       API_PORT: 8000
-      QUEUE_NAME: runs:queue
-      CORS_ORIGINS: "*"
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
 
   worker:
     build:
       context: .
       dockerfile: infra/docker/worker.Dockerfile
-    container_name: langgraph-platform-worker
     env_file:
       - .env
     environment:
       SERVICE_NAME: worker
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@postgres:5432/langgraph_platform
-      REDIS_URL: redis://redis:6379/0
-      QUEUE_NAME: runs:queue
-      WORKER_MAX_RETRIES: 2
-      WORKER_POLL_TIMEOUT_SECONDS: 5
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      QUEUE_NAME: ${QUEUE_NAME:-runs:queue}
+      WORKER_MAX_RETRIES: ${WORKER_MAX_RETRIES:-2}
+      WORKER_POLL_TIMEOUT_SECONDS: ${WORKER_POLL_TIMEOUT_SECONDS:-5}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
 
@@ -74,13 +53,8 @@ services:
     build:
       context: .
       dockerfile: infra/docker/frontend.Dockerfile
-    container_name: langgraph-platform-frontend
     depends_on:
       control-api:
         condition: service_started
-    ports:
-      - "8080:80"
-
-volumes:
-  postgres_data:
-
+    expose:
+      - "80"

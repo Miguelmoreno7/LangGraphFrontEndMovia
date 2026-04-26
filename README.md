@@ -79,7 +79,7 @@ docker compose up --build
 
 Use the Dokploy compose file:
 
-- `dokploy.compose.yml`
+- `docker-compose.yml`
 - Optional env template: `.env.dokploy.example`
 
 This file does not publish host ports for Redis/Postgres/API, so it avoids conflicts like:

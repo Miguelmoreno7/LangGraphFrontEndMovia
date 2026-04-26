@@ -2,7 +2,7 @@
 
 This project includes a Dokploy-oriented Compose file at:
 
-- `dokploy.compose.yml`
+- `docker-compose.yml`
 
 The key difference vs local Docker Compose is that **no host ports are published** for internal services.  
 That avoids collisions like `Bind for 0.0.0.0:6379 failed: port is already allocated`.
@@ -12,12 +12,21 @@ That avoids collisions like `Bind for 0.0.0.0:6379 failed: port is already alloc
 Your previous Compose published Redis with `6379:6379`, which tries to reserve host port `6379`.
 If another app in Dokploy (or host process) already uses `6379`, deployment fails.
 
-In `dokploy.compose.yml`, Redis is internal-only (`expose: 6379`) so it does not bind host port `6379`.
+In `docker-compose.yml`, Redis is internal-only (`expose: 6379`) so it does not bind host port `6379`.
+
+## If You Still See `langgraph-platform-redis` Errors
+
+That name comes from an older compose file that had fixed `container_name` values and host port binds.
+
+1. Confirm Dokploy app points to `docker-compose.yml`.
+2. Redeploy with rebuild enabled.
+3. If needed, remove stale containers from the host:
+   - `docker rm -f langgraph-platform-redis langgraph-platform-postgres langgraph-platform-control-api langgraph-platform-worker langgraph-platform-frontend`
 
 ## Recommended Dokploy Setup
 
 1. Create a new Docker Compose app in Dokploy.
-2. Set compose path to `dokploy.compose.yml`.
+2. Set compose path to `docker-compose.yml`.
 3. Add environment variables from `.env.dokploy.example` (at minimum `DATABASE_URL`).
 4. Expose only `frontend` publicly (port `80` in container).
 5. Keep `redis`, `control-api`, and `worker` internal unless you explicitly need external access.
