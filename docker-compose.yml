@@ -11,6 +11,10 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+    networks:
+      app_internal:
+        aliases:
+          - redis
 
   control-api:
     container_name: control-api
@@ -39,6 +43,10 @@ services:
       retries: 10
     expose:
       - "8000"
+    networks:
+      app_internal:
+        aliases:
+          - control-api
 
   worker:
     container_name: worker
@@ -60,6 +68,10 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    networks:
+      app_internal:
+        aliases:
+          - worker
 
   frontend:
     container_name: frontend
@@ -72,3 +84,11 @@ services:
         condition: service_healthy
     expose:
       - "80"
+    networks:
+      app_internal:
+        aliases:
+          - frontend
+
+networks:
+  app_internal:
+    driver: bridge
