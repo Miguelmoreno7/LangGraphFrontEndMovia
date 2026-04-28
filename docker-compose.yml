@@ -14,6 +14,7 @@ services:
 
   control-api:
     container_name: control-api
+    restart: unless-stopped
     build:
       context: .
       dockerfile: infra/docker/control_api.Dockerfile
@@ -41,6 +42,7 @@ services:
 
   worker:
     container_name: worker
+    restart: unless-stopped
     build:
       context: .
       dockerfile: infra/docker/worker.Dockerfile
@@ -61,6 +63,7 @@ services:
 
   frontend:
     container_name: frontend
+    restart: unless-stopped
     build:
       context: .
       dockerfile: infra/docker/frontend.Dockerfile

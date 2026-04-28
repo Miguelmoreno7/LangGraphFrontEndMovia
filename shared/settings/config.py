@@ -57,10 +57,14 @@ class Settings(BaseSettings):
             issues.append("DATABASE_URL is missing database name.")
 
         if self.require_supabase_database:
-            host = parsed.hostname or ""
-            if "supabase.co" not in host:
+            host = (parsed.hostname or "").lower()
+            allowed_domains = ("supabase.co", "supabase.com")
+            is_allowed_host = any(
+                host == domain or host.endswith(f".{domain}") for domain in allowed_domains
+            )
+            if not is_allowed_host:
                 issues.append(
-                    "DATABASE_URL host must point to Supabase (expected *.supabase.co)."
+                    "DATABASE_URL host must point to Supabase (expected *.supabase.co or *.supabase.com)."
                 )
 
         query_params = parse_qs(parsed.query)
