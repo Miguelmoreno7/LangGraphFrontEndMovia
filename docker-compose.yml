@@ -75,6 +75,8 @@ services:
     build:
       context: .
       dockerfile: infra/docker/frontend.Dockerfile
+    environment:
+      CONTROL_API_BASE_URL: ${CONTROL_API_BASE_URL:-http://control-api:8000}
     depends_on:
       control-api:
         condition: service_started

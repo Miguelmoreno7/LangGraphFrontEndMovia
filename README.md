@@ -128,3 +128,4 @@ Worker algorithm:
 - API role gate is header-based for bootstrap (`X-Role`: `viewer|operator|admin`).
 - `run_events` is the audit stream for queue/execution/finalization events.
 - Frontend polls runs/events every 5 seconds.
+- Frontend proxy target is configurable with `CONTROL_API_BASE_URL` (default: `http://control-api:8000`).

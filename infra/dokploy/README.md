@@ -31,6 +31,14 @@ That name comes from an older compose file that had fixed `container_name` value
 4. Expose only `frontend` publicly (port `80` in container).
 5. Keep `redis`, `control-api`, and `worker` internal unless you explicitly need external access.
 
+## Service Name vs Container Name
+
+- Docker DNS inside a compose network resolves by **service name** (for example `control-api`), not by the generated container name.
+- Dokploy may prefix container names with repository/app identifiers; this is expected and does not break service discovery.
+- If `frontend` and `control-api` are deployed in different apps/networks, `control-api` will not resolve internally.
+  In that case, set:
+  - `CONTROL_API_BASE_URL=https://your-api-domain.com`
+
 ## Environment Variables
 
 Required:
@@ -47,6 +55,7 @@ Recommended:
 - `WORKER_MAX_RETRIES` (default: `2`)
 - `WORKER_POLL_TIMEOUT_SECONDS` (default: `5`)
 - `CORS_ORIGINS` (set your frontend domain(s) in production)
+- `CONTROL_API_BASE_URL` (default: `http://control-api:8000`)
 - `OPENAI_API_KEY` (if your graphs require it)
 
 ## Health Checks
