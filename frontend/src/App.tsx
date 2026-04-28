@@ -54,6 +54,10 @@ function App() {
     setRuns(data);
   }
 
+  async function checkBackendReady(): Promise<void> {
+    await request<{ status: string }>("/ready", { role, user });
+  }
+
   async function loadVersions(agentId: string): Promise<void> {
     if (!agentId) {
       setVersions([]);
@@ -82,9 +86,10 @@ function App() {
     setSuccess("");
     setBusy(true);
     try {
+      await checkBackendReady();
       await Promise.all([loadAgents(), loadRuns()]);
     } catch (requestError) {
-      setError(String(requestError));
+      setError(`Backend readiness check failed: ${String(requestError)}`);
     } finally {
       setBusy(false);
     }
@@ -141,10 +146,16 @@ function App() {
   useEffect(() => {
     void refreshAll();
     const interval = window.setInterval(() => {
-      void loadRuns();
-      if (selectedRun) {
-        void loadEvents(selectedRun);
-      }
+      void (async () => {
+        try {
+          await loadRuns();
+          if (selectedRun) {
+            await loadEvents(selectedRun);
+          }
+        } catch (requestError) {
+          setError(`Background refresh failed: ${String(requestError)}`);
+        }
+      })();
     }, 5000);
     return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -355,4 +366,3 @@ function App() {
 }
 
 export default App;
-

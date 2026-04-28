@@ -69,7 +69,26 @@ export async function request<T>(
   });
 
   if (!response.ok) {
-    const detail = await response.text();
+    let detail = "";
+    try {
+      const contentType = response.headers.get("content-type") ?? "";
+      if (contentType.includes("application/json")) {
+        const jsonBody = (await response.json()) as {
+          detail?: string | { message?: string; issues?: string[] };
+        };
+        if (typeof jsonBody.detail === "string") {
+          detail = jsonBody.detail;
+        } else if (jsonBody.detail && typeof jsonBody.detail === "object") {
+          const message = jsonBody.detail.message ?? "Request failed.";
+          const issues = jsonBody.detail.issues ?? [];
+          detail = issues.length > 0 ? `${message} ${issues.join(" ")}` : message;
+        }
+      } else {
+        detail = await response.text();
+      }
+    } catch {
+      detail = "";
+    }
     throw new Error(detail || `Request failed with status ${response.status}`);
   }
 

@@ -9,9 +9,9 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from shared.db import Agent, AgentVersion, Run, RunEvent, SessionLocal
+from shared.db import Agent, AgentVersion, Run, RunEvent, SessionLocal, check_database_ready
 from shared.logging_utils import configure_logging
-from shared.queue import enqueue_run_job, pop_run_job
+from shared.queue import check_redis_ready, enqueue_run_job, pop_run_job
 from shared.schemas import QueueJobEnvelope, RunStatus
 from shared.settings import get_settings
 
@@ -177,6 +177,23 @@ def _process_job(job: QueueJobEnvelope) -> None:
 
 
 def run_forever() -> None:
+    config_issues = settings.database_config_issues()
+    if config_issues:
+        logger.error(
+            "Supabase database configuration issues detected. Worker will not start.",
+            extra={"extra": {"issues": config_issues}},
+        )
+        raise SystemExit(1)
+    try:
+        check_database_ready()
+        check_redis_ready()
+    except Exception as exc:
+        logger.error(
+            "Worker startup dependency checks failed. Worker will not start.",
+            extra={"extra": {"error": str(exc)}},
+        )
+        raise SystemExit(1)
+
     logger.info(
         "Worker loop started",
         extra={"extra": {"queue_name": settings.queue_name, "poll_timeout": settings.worker_poll_timeout_seconds}},
@@ -197,4 +214,3 @@ def run_forever() -> None:
 
 if __name__ == "__main__":
     run_forever()
-

@@ -14,15 +14,6 @@ If another app in Dokploy (or host process) already uses `6379`, deployment fail
 
 In `docker-compose.yml`, Redis is internal-only (`expose: 6379`) so it does not bind host port `6379`.
 
-## If You Still See `langgraph-platform-redis` Errors
-
-That name comes from an older compose file that had fixed `container_name` values and host port binds.
-
-1. Confirm Dokploy app points to `docker-compose.yml`.
-2. Redeploy with rebuild enabled.
-3. If needed, remove stale containers from the host:
-   - `docker rm -f langgraph-platform-redis langgraph-platform-postgres langgraph-platform-control-api langgraph-platform-worker langgraph-platform-frontend`
-
 ## Recommended Dokploy Setup
 
 1. Create a new Docker Compose app in Dokploy.
@@ -31,23 +22,26 @@ That name comes from an older compose file that had fixed `container_name` value
 4. Expose only `frontend` publicly (port `80` in container).
 5. Keep `redis`, `control-api`, and `worker` internal unless you explicitly need external access.
 
-## Service Name vs Container Name
+## Service Names in This Compose
 
-- Docker DNS inside a compose network resolves by **service name** (for example `control-api`), not by the generated container name.
-- Dokploy may prefix container names with repository/app identifiers; this is expected and does not break service discovery.
-- If `frontend` and `control-api` are deployed in different apps/networks, `control-api` will not resolve internally.
-  In that case, set:
-  - `CONTROL_API_BASE_URL=https://your-api-domain.com`
+This compose pins stable container names for Dokploy single-app deployments:
+
+- `frontend`
+- `control-api`
+- `worker`
+- `redis`
+
+Frontend proxies `/api/*` to `control-api:8000` on the same internal network.
 
 ## Environment Variables
 
 Required:
 
-- None for bootstrapping (internal Postgres/Redis are included in compose)
+- `DATABASE_URL` (Supabase Postgres URI with `sslmode=require`)
+- `REQUIRE_SUPABASE_DATABASE=true`
 
 Recommended:
 
-- `DATABASE_URL` (set to Supabase or managed Postgres in production)
 - `REDIS_URL` (leave unset to use internal Redis service: `redis://redis:6379/0`)
 - `QUEUE_NAME` (default: `runs:queue`)
 - `LOG_LEVEL` (default: `INFO`)
@@ -55,7 +49,6 @@ Recommended:
 - `WORKER_MAX_RETRIES` (default: `2`)
 - `WORKER_POLL_TIMEOUT_SECONDS` (default: `5`)
 - `CORS_ORIGINS` (set your frontend domain(s) in production)
-- `CONTROL_API_BASE_URL` (default: `http://control-api:8000`)
 - `OPENAI_API_KEY` (if your graphs require it)
 
 ## Health Checks
@@ -63,6 +56,8 @@ Recommended:
 - Control API: `GET /health` and `GET /ready`
 - Frontend: `/`
 - Worker: rely on container restart policy, or add external checks if needed
+
+If Supabase auth/connection is wrong, `GET /ready` returns `503` with detailed configuration issues and services log those issues on startup.
 
 ## Scaling
 
