@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS runs (
   input_json JSONB NOT NULL DEFAULT '{}'::jsonb,
   output_json JSONB NULL,
   error_text TEXT NULL,
+  total_tokens INT NULL,
   requested_by TEXT NULL,
   attempt_count INT NOT NULL DEFAULT 0,
   started_at TIMESTAMPTZ NULL,
@@ -68,4 +69,3 @@ CREATE TRIGGER trg_agents_updated_at
 BEFORE UPDATE ON agents
 FOR EACH ROW
 EXECUTE FUNCTION update_updated_at_column();
-

@@ -308,6 +308,7 @@ function App() {
               <th>Version</th>
               <th>Status</th>
               <th>Requested By</th>
+              <th>Tokens</th>
               <th>Created</th>
               <th>Started</th>
               <th>Finished</th>
@@ -330,6 +331,7 @@ function App() {
                   <span className={statusClass(run.status)}>{run.status}</span>
                 </td>
                 <td>{run.requested_by ?? "-"}</td>
+                <td>{run.total_tokens ?? "-"}</td>
                 <td>{prettyDate(run.created_at)}</td>
                 <td>{prettyDate(run.started_at)}</td>
                 <td>{prettyDate(run.finished_at)}</td>

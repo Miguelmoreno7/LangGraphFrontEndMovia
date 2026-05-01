@@ -121,9 +121,20 @@ Worker algorithm:
 1. Pop job from Redis.
 2. Re-check agent enabled state.
 3. Resolve entrypoint `module:function`.
-4. Build and execute graph.
+4. Build and execute graph locally, or fallback to remote webhook when module import is unavailable.
 5. Persist events and final run state.
 6. Retry within `WORKER_MAX_RETRIES`.
+
+Remote webhook fallback requirements:
+
+- Agent version `config_json` must include either `webhook_url` or `webhook_path`.
+- If using `webhook_path`, set `AGENT_WEBHOOK_BASE_URL` in worker env.
+- Optional auth header to receiver: `AGENT_WEBHOOK_DISPATCHER_TOKEN` (sent as `X-Dispatcher-Token`).
+
+Run token usage:
+
+- Worker extracts token usage from run output payload when available.
+- `runs.total_tokens` is persisted and shown in the dashboard Runs table.
 
 ## Notes
 

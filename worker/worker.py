@@ -4,9 +4,12 @@ import importlib
 import logging
 import time
 from datetime import UTC, datetime
+from numbers import Number
 from typing import Any, Callable
+from urllib.parse import urljoin
 from uuid import UUID
 
+import requests
 from sqlalchemy.orm import Session
 
 from shared.db import Agent, AgentVersion, Run, RunEvent, SessionLocal, check_database_ready
@@ -71,6 +74,103 @@ def _invoke_graph(graph: Any, payload: dict) -> Any:
     raise RuntimeError("Resolved graph object is not callable and has no invoke/run method.")
 
 
+def _coerce_int(value: Any) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, Number):
+        return int(value)
+    return None
+
+
+def _extract_total_tokens(payload: Any) -> int | None:
+    candidates: list[int] = []
+
+    def collect(value: Any) -> None:
+        if isinstance(value, dict):
+            total_tokens = _coerce_int(value.get("total_tokens"))
+            if total_tokens is not None and total_tokens >= 0:
+                candidates.append(total_tokens)
+
+            prompt_tokens = _coerce_int(value.get("prompt_tokens"))
+            completion_tokens = _coerce_int(value.get("completion_tokens"))
+            input_tokens = _coerce_int(value.get("input_tokens"))
+            output_tokens = _coerce_int(value.get("output_tokens"))
+
+            if prompt_tokens is not None and completion_tokens is not None:
+                candidates.append(prompt_tokens + completion_tokens)
+            if input_tokens is not None and output_tokens is not None:
+                candidates.append(input_tokens + output_tokens)
+
+            for nested_value in value.values():
+                collect(nested_value)
+            return
+
+        if isinstance(value, list):
+            for item in value:
+                collect(item)
+
+    collect(payload)
+    if not candidates:
+        return None
+    return max(candidates)
+
+
+def _resolve_webhook_url(version: AgentVersion) -> str:
+    config_json = version.config_json or {}
+
+    webhook_url_value = config_json.get("webhook_url")
+    if isinstance(webhook_url_value, str) and webhook_url_value.strip():
+        return webhook_url_value.strip()
+
+    webhook_path_value = config_json.get("webhook_path")
+    if isinstance(webhook_path_value, str) and webhook_path_value.strip():
+        base_url = settings.agent_webhook_base_url.strip()
+        if not base_url:
+            raise RuntimeError(
+                "Cannot execute remote webhook fallback: AGENT_WEBHOOK_BASE_URL is empty "
+                "and agent version has no config_json.webhook_url."
+            )
+        normalized_base = base_url if base_url.endswith("/") else f"{base_url}/"
+        normalized_path = webhook_path_value.lstrip("/")
+        return urljoin(normalized_base, normalized_path)
+
+    raise RuntimeError(
+        "Cannot execute remote webhook fallback: agent version config_json must include "
+        "'webhook_url' or 'webhook_path'."
+    )
+
+
+def _invoke_remote_webhook(
+    run: Run,
+    agent: Agent,
+    version: AgentVersion,
+    payload: dict,
+) -> Any:
+    webhook_url = _resolve_webhook_url(version)
+    headers = {
+        "Content-Type": "application/json",
+        "X-Run-Id": str(run.id),
+        "X-Agent-Key": agent.key,
+    }
+    dispatcher_token = settings.agent_webhook_dispatcher_token.strip()
+    if dispatcher_token:
+        headers["X-Dispatcher-Token"] = dispatcher_token
+
+    timeout_seconds = max(1, settings.agent_webhook_timeout_seconds)
+    response = requests.post(
+        webhook_url,
+        json=payload,
+        headers=headers,
+        timeout=timeout_seconds,
+    )
+    response.raise_for_status()
+
+    content_type = response.headers.get("content-type", "")
+    if "application/json" in content_type.lower():
+        return response.json()
+    return {"status_code": response.status_code, "body": response.text}
+
+
 def _process_job(job: QueueJobEnvelope) -> None:
     logger.info(
         "Processing run job",
@@ -121,18 +221,47 @@ def _process_job(job: QueueJobEnvelope) -> None:
         session.commit()
 
         try:
-            factory = _resolve_callable(version.entrypoint)
-            graph = factory(version.config_json or {})
-            result = _invoke_graph(graph, run.input_json or {})
+            execution_mode = "local"
+            try:
+                factory = _resolve_callable(version.entrypoint)
+                graph = factory(version.config_json or {})
+                result = _invoke_graph(graph, run.input_json or {})
+            except ModuleNotFoundError as exc:
+                execution_mode = "remote_webhook"
+                _append_event(
+                    session,
+                    run.id,
+                    "warn",
+                    "node_end",
+                    "Local entrypoint import failed; trying remote webhook fallback.",
+                    {"error": str(exc), "entrypoint": version.entrypoint},
+                )
+                session.commit()
+                result = _invoke_remote_webhook(run, agent, version, run.input_json or {})
+
+            result_payload = _safe_payload(result)
+            run.total_tokens = _extract_total_tokens(result_payload)
 
             run.status = RunStatus.success.value
-            run.output_json = _safe_payload(result)
+            run.output_json = result_payload
             run.error_text = None
             run.finished_at = datetime.now(UTC)
-            _append_event(session, run.id, "info", "final", "Run completed successfully.", _safe_payload(result))
+            _append_event(
+                session,
+                run.id,
+                "info",
+                "final",
+                "Run completed successfully.",
+                {
+                    "execution_mode": execution_mode,
+                    "total_tokens": run.total_tokens,
+                    "result": result_payload,
+                },
+            )
             session.commit()
         except Exception as exc:
             run.error_text = str(exc)
+            run.total_tokens = None
             _append_event(
                 session,
                 run.id,

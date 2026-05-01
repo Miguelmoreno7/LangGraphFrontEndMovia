@@ -48,6 +48,9 @@ Recommended:
 - `APP_ENV`
 - `WORKER_MAX_RETRIES` (default: `2`)
 - `WORKER_POLL_TIMEOUT_SECONDS` (default: `5`)
+- `AGENT_WEBHOOK_BASE_URL` (required for distributed client-agent webhook fallback when platform worker cannot import local modules)
+- `AGENT_WEBHOOK_TIMEOUT_SECONDS` (default: `30`)
+- `AGENT_WEBHOOK_DISPATCHER_TOKEN` (optional, forwarded as `X-Dispatcher-Token`)
 - `CORS_ORIGINS` (set your frontend domain(s) in production)
 - `OPENAI_API_KEY` (if your graphs require it)
 

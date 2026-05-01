@@ -80,6 +80,7 @@ class Run(Base):
     input_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
     output_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     error_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    total_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
     requested_by: Mapped[str | None] = mapped_column(String, nullable=True)
     attempt_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
@@ -108,4 +109,3 @@ class RunEvent(Base):
     event_type: Mapped[str] = mapped_column(String, nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     payload_json: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
-

@@ -122,6 +122,7 @@ def create_run(
         input_json=run.input_json,
         output_json=run.output_json,
         error_text=run.error_text,
+        total_tokens=run.total_tokens,
         requested_by=run.requested_by,
         attempt_count=run.attempt_count,
         started_at=run.started_at,
@@ -164,6 +165,7 @@ def list_runs(
                 created_at=run.created_at,
                 started_at=run.started_at,
                 finished_at=run.finished_at,
+                total_tokens=run.total_tokens,
                 error_text=run.error_text,
             )
         )
@@ -194,6 +196,7 @@ def get_run(
         input_json=run.input_json,
         output_json=run.output_json,
         error_text=run.error_text,
+        total_tokens=run.total_tokens,
         requested_by=run.requested_by,
         attempt_count=run.attempt_count,
         started_at=run.started_at,

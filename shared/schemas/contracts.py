@@ -75,6 +75,7 @@ class RunListItem(BaseModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+    total_tokens: int | None
     error_text: str | None
 
 
@@ -87,6 +88,7 @@ class RunDetailResponse(BaseModel):
     input_json: dict
     output_json: dict | None
     error_text: str | None
+    total_tokens: int | None
     requested_by: str | None
     attempt_count: int
     started_at: datetime | None
@@ -104,4 +106,3 @@ class RunEventResponse(BaseModel):
     event_type: str
     message: str
     payload_json: dict
-

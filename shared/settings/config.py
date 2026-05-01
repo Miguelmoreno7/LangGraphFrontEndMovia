@@ -29,6 +29,9 @@ class Settings(BaseSettings):
         default=5, alias="WORKER_POLL_TIMEOUT_SECONDS"
     )
     worker_max_retries: int = Field(default=2, alias="WORKER_MAX_RETRIES")
+    agent_webhook_base_url: str = Field(default="", alias="AGENT_WEBHOOK_BASE_URL")
+    agent_webhook_dispatcher_token: str = Field(default="", alias="AGENT_WEBHOOK_DISPATCHER_TOKEN")
+    agent_webhook_timeout_seconds: int = Field(default=30, alias="AGENT_WEBHOOK_TIMEOUT_SECONDS")
 
     cors_origins: str = Field(default="*", alias="CORS_ORIGINS")
     require_supabase_database: bool = Field(default=True, alias="REQUIRE_SUPABASE_DATABASE")
