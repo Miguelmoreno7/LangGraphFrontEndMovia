@@ -74,6 +74,14 @@ def _invoke_graph(graph: Any, payload: dict) -> Any:
     raise RuntimeError("Resolved graph object is not callable and has no invoke/run method.")
 
 
+def _compute_duration_ms(started_at: datetime | None, finished_at: datetime | None) -> int | None:
+    if started_at is None or finished_at is None:
+        return None
+    delta_seconds = (finished_at - started_at).total_seconds()
+    duration_ms = int(delta_seconds * 1000)
+    return duration_ms if duration_ms >= 0 else 0
+
+
 def _coerce_int(value: Any) -> int | None:
     if isinstance(value, bool):
         return None
@@ -246,6 +254,7 @@ def _process_job(job: QueueJobEnvelope) -> None:
             run.output_json = result_payload
             run.error_text = None
             run.finished_at = datetime.now(UTC)
+            run.total_duration_ms = _compute_duration_ms(run.started_at, run.finished_at)
             _append_event(
                 session,
                 run.id,
@@ -255,6 +264,7 @@ def _process_job(job: QueueJobEnvelope) -> None:
                 {
                     "execution_mode": execution_mode,
                     "total_tokens": run.total_tokens,
+                    "total_duration_ms": run.total_duration_ms,
                     "result": result_payload,
                 },
             )
@@ -294,13 +304,17 @@ def _process_job(job: QueueJobEnvelope) -> None:
 
             run.status = RunStatus.failed.value
             run.finished_at = datetime.now(UTC)
+            run.total_duration_ms = _compute_duration_ms(run.started_at, run.finished_at)
             _append_event(
                 session,
                 run.id,
                 "error",
                 "final",
                 "Run failed after max retries.",
-                {"max_retries": settings.worker_max_retries},
+                {
+                    "max_retries": settings.worker_max_retries,
+                    "total_duration_ms": run.total_duration_ms,
+                },
             )
             session.commit()
 

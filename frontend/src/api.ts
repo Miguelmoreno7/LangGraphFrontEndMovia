@@ -35,6 +35,7 @@ export type Run = {
   started_at: string | null;
   finished_at: string | null;
   total_tokens: number | null;
+  total_duration_ms: number | null;
   error_text: string | null;
 };
 

@@ -81,6 +81,7 @@ class Run(Base):
     output_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     error_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     total_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    total_duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     requested_by: Mapped[str | None] = mapped_column(String, nullable=True)
     attempt_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"

@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS runs (
   output_json JSONB NULL,
   error_text TEXT NULL,
   total_tokens INT NULL,
+  total_duration_ms INT NULL,
   requested_by TEXT NULL,
   attempt_count INT NOT NULL DEFAULT 0,
   started_at TIMESTAMPTZ NULL,

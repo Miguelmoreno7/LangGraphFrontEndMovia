@@ -15,6 +15,16 @@ function prettyDate(value: string | null): string {
   return new Date(value).toLocaleString();
 }
 
+function formatDurationMs(value: number | null): string {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  if (value < 1000) {
+    return `${value} ms`;
+  }
+  return `${(value / 1000).toFixed(2)} s`;
+}
+
 function statusClass(status: Run["status"]): string {
   return `status status-${status}`;
 }
@@ -309,6 +319,7 @@ function App() {
               <th>Status</th>
               <th>Requested By</th>
               <th>Tokens</th>
+              <th>Duration</th>
               <th>Created</th>
               <th>Started</th>
               <th>Finished</th>
@@ -332,6 +343,7 @@ function App() {
                 </td>
                 <td>{run.requested_by ?? "-"}</td>
                 <td>{run.total_tokens ?? "-"}</td>
+                <td>{formatDurationMs(run.total_duration_ms)}</td>
                 <td>{prettyDate(run.created_at)}</td>
                 <td>{prettyDate(run.started_at)}</td>
                 <td>{prettyDate(run.finished_at)}</td>
